@@ -127,17 +127,34 @@ class CometMapExpressionSuite extends CometTestBase {
   }
 
   test("size with map input") {
-    withTempDir { dir =>
-      withTempView("t1") {
-        val path = new Path(dir.toURI.toString, "test.parquet")
-        makeParquetFileAllPrimitiveTypes(path, dictionaryEnabled = true, 100)
-        spark.read.parquet(path.toString).createOrReplaceTempView("t1")
+    withTempPath { dir =>
+      withSQLConf(CometConf.COMET_ENABLED.key -> "false") {
+        val df = spark
+          .range(100)
+          .select(
+            when(col("id") > 1, map(col("id"), when(col("id") > 2, col("id"))))
+              .alias("map1"),
+            when(col("id") > 5, map(lit("a"), col("id"), lit("b"), col("id") + 1))
+              .alias("map2"))
+        df.write.parquet(dir.toString())
+      }
 
-        // Use column references in maps to avoid constant folding
-        checkSparkAnswerAndOperator(
-          sql("SELECT size(map(_8, _9, _10, _11)) from t1 where _8 is not null"))
-        checkSparkAnswerAndOperator(
-          sql("SELECT size(case when _2 < 0 then map(_8, _9) else map() end) from t1"))
+      Seq("", "parquet").foreach { v1List =>
+        withSQLConf(SQLConf.USE_V1_SOURCE_LIST.key -> v1List) {
+          val df = spark.read.parquet(dir.toString())
+          df.createOrReplaceTempView("t1")
+          if (v1List.isEmpty) {
+            checkSparkAnswer(df.select(size(col("map1"))))
+            checkSparkAnswer(df.select(size(col("map2"))))
+            checkSparkAnswer(
+              sql("SELECT size(CASE WHEN id < 50 THEN map1 ELSE map2 END) FROM t1"))
+          } else {
+            checkSparkAnswerAndOperator(df.select(size(col("map1"))))
+            checkSparkAnswerAndOperator(df.select(size(col("map2"))))
+            checkSparkAnswerAndOperator(
+              sql("SELECT size(CASE WHEN id < 50 THEN map1 ELSE map2 END) FROM t1"))
+          }
+        }
       }
     }
   }
