@@ -127,6 +127,21 @@ class CometMapExpressionSuite extends CometTestBase {
   }
 
   test("size with map input") {
+    withTempDir { dir =>
+      withTempView("t1") {
+        val path = new Path(dir.toURI.toString, "test.parquet")
+        makeParquetFileAllPrimitiveTypes(path, dictionaryEnabled = true, 100)
+        spark.read.parquet(path.toString).createOrReplaceTempView("t1")
+
+        checkSparkAnswerAndOperator(
+          sql("SELECT size(map(_8, _9, _10, _11)) from t1 where _8 is not null"))
+        checkSparkAnswerAndOperator(
+          sql("SELECT size(case when _2 < 0 then map(_8, _9) else map() end) from t1"))
+      }
+    }
+  }
+
+  test("size with map input - v2 reader") {
     withTempPath { dir =>
       withSQLConf(CometConf.COMET_ENABLED.key -> "false") {
         val df = spark
