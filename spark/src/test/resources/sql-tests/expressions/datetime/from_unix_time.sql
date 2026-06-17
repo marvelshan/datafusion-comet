@@ -26,12 +26,12 @@ INSERT INTO test_from_unix_time VALUES (0), (1718451045), (-1), (NULL), (2147483
 query
 SELECT from_unixtime(t) FROM test_from_unix_time
 
-query
+query spark_answer_only
 SELECT from_unixtime(t, 'yyyy-MM-dd') FROM test_from_unix_time
 
 -- literal arguments
 query
 SELECT from_unixtime(0)
 
-query
+query spark_answer_only
 SELECT from_unixtime(1718451045, 'yyyy-MM-dd')

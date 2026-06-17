@@ -34,11 +34,14 @@ object CometFromUnixTime extends CometExpressionSerde[FromUnixTime] with Codegen
       " (https://github.com/apache/datafusion/issues/16594)")
 
   override def getUnsupportedReasons(): Seq[String] = Seq(
-    "Only the default datetime format pattern `yyyy-MM-dd HH:mm:ss` is supported.")
+    "Only the default datetime format pattern `yyyy-MM-dd HH:mm:ss` is supported natively." +
+      " Non-default patterns are handled by the JVM codegen dispatcher when" +
+      " `spark.comet.exec.scalaUDF.codegen.enabled=true`.")
 
   override def getSupportLevel(expr: FromUnixTime): SupportLevel = {
     if (expr.format != Literal(TimestampFormatter.defaultPattern())) {
-      Unsupported(Some("Only the default datetime pattern `yyyy-MM-dd HH:mm:ss` is supported"))
+      Incompatible(
+        Some("Only the default datetime pattern `yyyy-MM-dd HH:mm:ss` is supported natively"))
     } else {
       Incompatible(None)
     }
