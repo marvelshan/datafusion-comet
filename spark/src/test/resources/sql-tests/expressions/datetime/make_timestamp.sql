@@ -15,9 +15,8 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
--- Routes make_timestamp through the codegen dispatcher.
+-- Routes make_timestamp through the native scalar function serde.
 -- Config: spark.sql.session.timeZone=America/Los_Angeles
--- Config: spark.comet.exec.scalaUDF.codegen.enabled=true
 
 statement
 CREATE TABLE test_make_timestamp(y int, mo int, d int, h int, mi int, s decimal(8,6)) USING parquet

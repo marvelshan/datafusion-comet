@@ -15,14 +15,13 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
--- try_make_timestamp rewrites to MakeTimestamp(failOnError = false), which the codegen
--- dispatcher routes through Spark's MakeTimestamp.doGenCode. Invalid components must produce
--- NULL, not garbage timestamp bytes (issue #4554).
+-- try_make_timestamp rewrites to MakeTimestamp(failOnError = false), which the
+-- native SparkMakeTimestamp handles with fail_on_error=false. Invalid components
+-- must produce NULL, not garbage timestamp bytes (issue #4554).
 --
 -- Function added in Spark 4.0.0.
 -- MinSparkVersion: 4.0
 -- Config: spark.sql.session.timeZone=UTC
--- Config: spark.comet.exec.scalaUDF.codegen.enabled=true
 
 statement
 CREATE TABLE test_try_make_ts(y int, mo int, d int, h int, mi int, s decimal(8,6)) USING parquet
@@ -50,9 +49,10 @@ SELECT try_make_timestamp(2024, 6, 32, 0, 0, 0.0)
 query
 SELECT try_make_timestamp(2024, 6, 15, 25, 0, 0.0)
 
--- Sentinel: a valid input must run on the Comet codegen path. If the dispatcher silently
--- rejected MakeTimestamp the operator would fall back to Spark and the NULL-on-invalid queries
--- above pass vacuously. `query` mode uses checkSparkAnswerAndOperator, which fails if Comet
--- did not run the expression natively.
+-- Sentinel: a valid input must run on the Comet native path. If the serde
+-- silently rejected MakeTimestamp the operator would fall back to Spark and the
+-- NULL-on-invalid queries above pass vacuously. `query` mode uses
+-- checkSparkAnswerAndOperator, which fails if Comet did not run the expression
+-- natively.
 query
 SELECT try_make_timestamp(2024, 6, 15, 10, 30, 45.0)
