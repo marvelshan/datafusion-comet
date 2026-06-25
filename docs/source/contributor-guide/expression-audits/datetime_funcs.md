@@ -44,13 +44,17 @@
 - Spark 4.0.1 (audited 2026-05-12): `inputTypes` widened to `StringTypeWithCollation`; behaviour unchanged for ASCII timezone strings.
 - Known divergence: Comet's native timezone parser does not accept Spark's legacy zone forms (`GMT+1`, `UTC+1`, three-letter abbreviations like `PST`). Such timezones throw a native parse error at execution.
 
+## make_timestamp
+
+- The 6-argument form is handled by `CometExpressionSerde[MakeTimestamp]` with `failOnError` passed to native via `ScalarFunc.fail_on_error` (previously used the codegen dispatcher which could not propagate the ANSI flag). The 2-argument `(date, time)` form requires the Spark 4.1 TIME type and falls back.
+
 ## make_timestamp_ltz
 
-- The 6-argument form rewrites to `MakeTimestamp` and runs via the codegen dispatcher. The 2-argument `(date, time)` form requires the Spark 4.1 TIME type and falls back.
+- The 6-argument form rewrites to `MakeTimestamp`; same as `make_timestamp`. The 2-argument `(date, time)` form requires the Spark 4.1 TIME type and falls back.
 
 ## make_timestamp_ntz
 
-- The 6-argument form rewrites to `MakeTimestamp` and runs via the codegen dispatcher. The 2-argument `(date, time)` form requires the Spark 4.1 TIME type and falls back.
+- The 6-argument form rewrites to `MakeTimestamp`; same as `make_timestamp`. The 2-argument `(date, time)` form requires the Spark 4.1 TIME type and falls back.
 
 ## monthname
 
