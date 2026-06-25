@@ -829,7 +829,38 @@ object CometAddMonths extends CometCodegenDispatch[AddMonths]
 
 object CometMonthsBetween extends CometCodegenDispatch[MonthsBetween]
 
-object CometMakeTimestamp extends CometCodegenDispatch[MakeTimestamp]
+object CometMakeTimestamp extends CometExpressionSerde[MakeTimestamp] {
+
+  /**
+   * `failOnError` mirrors `spark.sql.ansi.enabled`: under ANSI, Spark throws on an invalid
+   * `(year, month, day, hour, min, sec[, timezone])` argument rather than returning NULL. The
+   * resolved flag is passed to native via the `ScalarFunc.fail_on_error` field.
+   */
+  override def convert(
+      expr: MakeTimestamp,
+      inputs: Seq[Attribute],
+      binding: Boolean): Option[Expr] = {
+    val year = expr.year
+    val month = expr.month
+    val day = expr.day
+    val hour = expr.hour
+    val minute = expr.min
+    val sec = expr.sec
+    val tzExpr = expr.timezone match {
+      case Some(tz) => tz
+      case None =>
+        Literal(UTF8String.fromString(expr.zoneId.getId), StringType)
+    }
+    val childExpr = Seq(year, month, day, hour, minute, sec, tzExpr)
+      .map(exprToProtoInternal(_, inputs, binding))
+    val optExpr = scalarFunctionExprToProtoWithReturnType(
+      "make_timestamp",
+      expr.dataType,
+      expr.failOnError,
+      childExpr: _*)
+    optExprWithFallbackReason(optExpr, expr, expr.children: _*)
+  }
+}
 
 object CometMicrosToTimestamp extends CometCodegenDispatch[MicrosToTimestamp]
 
